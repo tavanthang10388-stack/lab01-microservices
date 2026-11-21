@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lab 01 - Frontend Microservices</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            max-width: 600px;
+            margin: 40px auto;
+            padding: 0 20px;
+            line-height: 1.6;
+            color: #0f172a;
+            background-color: #ffffff;
+        }
+        h2 {
+            margin-top: 30px;
+            color: #0f172a;
+        }
+        button {
+            padding: 9px 18px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            background-color: #1d4ed8;
+            color: #ffffff;
+            border: none;
+            border-radius: 6px;
+        }
+        button:hover {
+            background-color: #1e40af;
+        }
+        input {
+            padding: 8px 12px;
+            font-size: 14px;
+            border: 1px solid #94a3b8;
+            border-radius: 6px;
+            width: 220px;
+            color: #0f172a;
+            background-color: #ffffff;
+        }
+        input:focus {
+            outline: 2px solid #1d4ed8;
+            outline-offset: 1px;
+        }
+        ul {
+            list-style-type: none;
+            padding-left: 0;
+            margin-top: 15px;
+        }
+        li {
+            padding: 10px 14px;
+            margin-bottom: 8px;
+            background-color: #f8fafc;
+            border-left: 4px solid #1d4ed8;
+            border-radius: 4px;
+            color: #0f172a;
+        }
+        pre {
+            background-color: #f1f5f9;
+            color: #0f172a;
+            padding: 14px;
+            border-radius: 6px;
+            border: 1px solid #cbd5e1;
+            min-height: 48px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: Consolas, Monaco, "Courier New", monospace;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+    <h2>Danh sách sản phẩm</h2>
+    <button onclick="loadProducts()">
+        Tải danh sách sản phẩm
+    </button>
+    <ul id="productList"></ul>
+
+    <h2>Tìm sản phẩm thông qua Order Service</h2>
+    <input type="number"
+           id="productId"
+           placeholder="Nhập ID sản phẩm"
+           min="1">
+    <button onclick="findProduct()">
+        Tìm sản phẩm
+    </button>
+    <pre id="result"></pre>
+
+    <script>
+        async function loadProducts() {
+            try {
+                const response = await fetch("http://localhost:8081/api/products");
+                if (!response.ok) {
+                    throw new Error("Không thể tải danh sách sản phẩm");
+                }
+                const products = await response.json();
+                const list = document.getElementById("productList");
+                list.innerHTML = "";
+                if (products.length === 0) {
+                    list.textContent = "Chưa có sản phẩm";
+                    return;
+                }
+                products.forEach(product => {
+                    const li = document.createElement("li");
+                    li.textContent = `${product.id} - ${product.name}`;
+                    list.appendChild(li);
+                });
+            } catch (error) {
+                document.getElementById("productList").textContent = "Lỗi: " + error.message;
+            }
+        }
+
+        async function findProduct() {
+            const id = document.getElementById("productId").value;
+            const result = document.getElementById("result");
+            if (!id || !Number.isInteger(Number(id)) || Number(id) < 1) {
+                result.textContent = "Vui lòng nhập ID hợp lệ";
+                return;
+            }
+            try {
+                const response = await fetch(`http://localhost:8082/api/orders/product/${id}`);
+                if (response.status === 404) {
+                    result.textContent = "Không tìm thấy sản phẩm";
+                    return;
+                }
+                if (!response.ok) {
+                    throw new Error("Không thể lấy thông tin sản phẩm");
+                }
+                const product = await response.json();
+                result.textContent = JSON.stringify(product, null, 2);
+            } catch (error) {
+                result.textContent = "Lỗi: " + error.message;
+            }
+        }
+    </script>
+</body>
+</html>
